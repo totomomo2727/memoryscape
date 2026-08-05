@@ -57,7 +57,9 @@ export default function PhotoSlot({ slot, onSetPhoto, onClearPhoto, onSetNote })
                 e.stopPropagation();
                 onClearPhoto();
               }}
-              className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-ink text-sm leading-none text-ivory shadow"
+              className={`absolute -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-ink text-sm leading-none text-ivory shadow ${
+                tape.corner === 'top-right' ? '-left-2' : '-right-2'
+              }`}
               title="Remove photo"
             >
               ×
@@ -81,8 +83,8 @@ export default function PhotoSlot({ slot, onSetPhoto, onClearPhoto, onSetNote })
         onChange={(e) => setLocalNote(e.target.value)}
         onBlur={() => onSetNote(localNote)}
         placeholder="write a little note..."
-        rows={1}
-        className="font-script h-7 w-full shrink-0 resize-none border-none bg-transparent text-lg leading-7 text-ink placeholder:text-ink-soft/50 focus:outline-none"
+        rows={2}
+        className="font-script h-14 w-full shrink-0 resize-none border-none bg-transparent text-lg leading-7 text-ink placeholder:text-ink-soft/50 focus:outline-none"
       />
     </div>
   );

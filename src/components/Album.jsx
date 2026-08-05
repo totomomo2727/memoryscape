@@ -123,6 +123,7 @@ export default function Album() {
               maxWidth={720}
               minHeight={160}
               maxHeight={480}
+              disableFlipByClick
               showCover
               usePortrait={false}
               maxShadowOpacity={0.4}
