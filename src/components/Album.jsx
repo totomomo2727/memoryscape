@@ -116,13 +116,13 @@ export default function Album() {
           <>
             <HTMLFlipBook
               ref={bookRef}
-              width={480}
-              height={320}
+              width={540}
+              height={360}
               size="stretch"
-              minWidth={240}
-              maxWidth={720}
-              minHeight={160}
-              maxHeight={480}
+              minWidth={270}
+              maxWidth={810}
+              minHeight={180}
+              maxHeight={540}
               disableFlipByClick
               showCover
               usePortrait={false}

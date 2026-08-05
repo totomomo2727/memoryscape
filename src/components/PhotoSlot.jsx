@@ -84,7 +84,8 @@ export default function PhotoSlot({ slot, onSetPhoto, onClearPhoto, onSetNote })
         onBlur={() => onSetNote(localNote)}
         placeholder="write a little note..."
         rows={2}
-        className="font-script h-14 w-full shrink-0 resize-none border-none bg-transparent text-lg leading-7 text-ink placeholder:text-ink-soft/50 focus:outline-none"
+        wrap="soft"
+        className="font-script h-14 w-full shrink-0 resize-none overflow-y-auto whitespace-pre-wrap break-words border-none bg-transparent text-lg leading-7 text-ink placeholder:text-ink-soft/50 focus:outline-none"
       />
     </div>
   );
