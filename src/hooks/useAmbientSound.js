@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Howl, Howler } from 'howler';
 
+const AMBIENCE_VOLUME = 0.35;
+
 export function useAmbientSound() {
   const [soundOn, setSoundOn] = useState(true);
+  const soundOnRef = useRef(true);
   const ambienceRef = useRef(null);
   const flipSfxRef = useRef(null);
 
@@ -10,7 +13,7 @@ export function useAmbientSound() {
     const ambience = new Howl({
       src: ['/sounds/ambience_loop.mp3'],
       loop: true,
-      volume: 0.35,
+      volume: AMBIENCE_VOLUME,
       preload: true,
     });
     const flipSfx = new Howl({
@@ -21,6 +24,20 @@ export function useAmbientSound() {
     ambienceRef.current = ambience;
     flipSfxRef.current = flipSfx;
 
+    // Belt-and-suspenders: on some autoplay-blocked/unlock races, this sound
+    // has been observed reporting playing() === true with its volume stuck
+    // at 0 (silent-but-"playing"), and 'play' can fire more than once
+    // (once while still blocked, again once truly unlocked) so a one-shot
+    // fix isn't reliable. Instead, self-heal on every 'play' -- including
+    // loop restarts -- correcting the volume back whenever the user wants
+    // sound on but it's unexpectedly silent. This never fights a deliberate
+    // fade-to-0 from toggling sound off, since it only acts when soundOnRef
+    // is true.
+    ambience.on('play', () => {
+      if (soundOnRef.current && ambience.volume() === 0) {
+        ambience.volume(AMBIENCE_VOLUME);
+      }
+    });
     ambience.play();
 
     // Browsers block audio-with-sound from autoplaying until the page has
@@ -28,12 +45,10 @@ export function useAmbientSound() {
     // but it's opaque and gives no visibility into whether it actually
     // fired, so this is an explicit, first-class fallback: on the first
     // genuine click/tap/keypress anywhere on the page, resume the shared
-    // AudioContext and (re)try play(). Both calls are no-ops if audio is
-    // already running, so this is safe to fire even when unlocking wasn't
-    // actually needed.
+    // AudioContext. (No need to call play() again here -- the 'play'
+    // handler above will correct the volume once it actually starts.)
     function unlock() {
       if (Howler.ctx && Howler.ctx.state === 'suspended') Howler.ctx.resume();
-      if (!ambience.playing()) ambience.play();
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
     }
@@ -51,12 +66,13 @@ export function useAmbientSound() {
   const toggleSound = useCallback(() => {
     setSoundOn((prev) => {
       const next = !prev;
+      soundOnRef.current = next;
       const ambience = ambienceRef.current;
       if (ambience) {
         if (next) {
           if (Howler.ctx && Howler.ctx.state === 'suspended') Howler.ctx.resume();
           if (!ambience.playing()) ambience.play();
-          ambience.fade(ambience.volume(), 0.35, 400);
+          ambience.fade(ambience.volume(), AMBIENCE_VOLUME, 400);
         } else {
           ambience.fade(ambience.volume(), 0, 400);
         }
