@@ -45,10 +45,14 @@ export function useAmbientSound() {
     // but it's opaque and gives no visibility into whether it actually
     // fired, so this is an explicit, first-class fallback: on the first
     // genuine click/tap/keypress anywhere on the page, resume the shared
-    // AudioContext. (No need to call play() again here -- the 'play'
-    // handler above will correct the volume once it actually starts.)
+    // AudioContext AND explicitly retry play(). The retry matters: while
+    // the context is suspended, Howler appears to never actually schedule
+    // the underlying audio source, so resuming the context alone leaves
+    // nothing playing -- there has to be a fresh play() call after resume
+    // for sound to actually start.
     function unlock() {
       if (Howler.ctx && Howler.ctx.state === 'suspended') Howler.ctx.resume();
+      if (!ambience.playing()) ambience.play();
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
     }
