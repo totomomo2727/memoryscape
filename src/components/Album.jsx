@@ -85,6 +85,12 @@ export default function Album() {
         </p>
       </header>
 
+      {album.saveError && (
+        <p className="font-mono max-w-md text-center text-xs uppercase tracking-[0.1em] text-terracotta-dark">
+          couldn&apos;t save your last change — your device storage may be full
+        </p>
+      )}
+
       <div
         className="group relative mx-auto w-full transition-transform duration-500 ease-in-out"
         style={{

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { uid } from '../lib/id';
+import { idbGet, idbSet } from '../lib/idbStorage';
 
 const STORAGE_KEY = 'summer-album-v1';
 
@@ -18,17 +19,26 @@ function defaultAlbum() {
   };
 }
 
-function loadAlbum() {
+function isValidAlbum(value) {
+  return !!value && Array.isArray(value.pages) && value.pages.length > 0;
+}
+
+// One-time migration path: earlier versions of this app stored the whole
+// album -- including full-size photo data URLs -- directly in
+// localStorage, which only has a ~5-10MB quota. A couple of full-res
+// photos could blow past that, and the write failure was silently
+// swallowed, so uploaded photos would just vanish on the next visit with
+// no warning. IndexedDB has a much larger quota and is what this should
+// have used from the start; this pulls over anything already saved under
+// the old scheme so it isn't lost in the switch.
+function migrateFromLocalStorage() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultAlbum();
+    if (!raw) return null;
     const parsed = JSON.parse(raw);
-    if (!parsed || !Array.isArray(parsed.pages) || parsed.pages.length === 0) {
-      return defaultAlbum();
-    }
-    return parsed;
+    return isValidAlbum(parsed) ? parsed : null;
   } catch {
-    return defaultAlbum();
+    return null;
   }
 }
 
@@ -42,19 +52,41 @@ function readAsDataURL(file) {
 }
 
 export function useAlbum() {
-  const [album, setAlbum] = useState(loadAlbum);
-  const isFirstRender = useRef(true);
+  const [album, setAlbum] = useState(defaultAlbum);
+  const [saveError, setSaveError] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
-    }
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(album));
-    } catch {
-      // Storage full or unavailable (e.g. large photo set) — proceed without persisting.
-    }
+    let cancelled = false;
+    (async () => {
+      try {
+        let stored = await idbGet(STORAGE_KEY);
+        if (!isValidAlbum(stored)) {
+          const legacy = migrateFromLocalStorage();
+          if (legacy) {
+            stored = legacy;
+            await idbSet(STORAGE_KEY, legacy);
+          }
+        }
+        if (!cancelled && isValidAlbum(stored)) {
+          setAlbum(stored);
+        }
+      } catch {
+        // IndexedDB unavailable (e.g. private browsing) -- proceed in-memory only.
+      } finally {
+        if (!cancelled) hasLoadedRef.current = true;
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedRef.current) return;
+    idbSet(STORAGE_KEY, album)
+      .then(() => setSaveError(false))
+      .catch(() => setSaveError(true));
   }, [album]);
 
   const setDateRange = useCallback((dateRange) => {
@@ -148,6 +180,7 @@ export function useAlbum() {
   return {
     dateRange: album.dateRange,
     pages: album.pages,
+    saveError,
     setDateRange,
     addSpread,
     setSlotPhoto,
