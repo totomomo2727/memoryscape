@@ -109,7 +109,7 @@ export default function Album() {
           </div>
         )}
 
-        {!ready && (
+        {!(ready && album.loaded) && (
           <div
             className="font-mono mx-auto flex items-center justify-center text-xs uppercase tracking-[0.2em] text-ink-soft/60"
             style={{ maxWidth: 720, aspectRatio: '3 / 2' }}
@@ -118,7 +118,7 @@ export default function Album() {
           </div>
         )}
 
-        {ready && (
+        {ready && album.loaded && (
           <>
             <HTMLFlipBook
               ref={bookRef}

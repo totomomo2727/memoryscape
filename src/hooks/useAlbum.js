@@ -54,6 +54,14 @@ function readAsDataURL(file) {
 export function useAlbum() {
   const [album, setAlbum] = useState(defaultAlbum);
   const [saveError, setSaveError] = useState(false);
+  // Exposed as state (not just a ref) so the book isn't mounted by
+  // react-pageflip until the real data is in hand. react-pageflip does its
+  // own direct DOM manipulation for the flip effect; swapping `album` out
+  // from under an already-mounted book (default pages -> real loaded pages)
+  // raced with that and crashed the whole page (`removeChild: not a child
+  // of this node`). Gating the book's first mount on `loaded` means it only
+  // ever mounts once, with final data, so that race can't happen.
+  const [loaded, setLoaded] = useState(false);
   const hasLoadedRef = useRef(false);
 
   useEffect(() => {
@@ -74,7 +82,10 @@ export function useAlbum() {
       } catch {
         // IndexedDB unavailable (e.g. private browsing) -- proceed in-memory only.
       } finally {
-        if (!cancelled) hasLoadedRef.current = true;
+        if (!cancelled) {
+          hasLoadedRef.current = true;
+          setLoaded(true);
+        }
       }
     })();
     return () => {
@@ -181,6 +192,7 @@ export function useAlbum() {
     dateRange: album.dateRange,
     pages: album.pages,
     saveError,
+    loaded,
     setDateRange,
     addSpread,
     setSlotPhoto,
