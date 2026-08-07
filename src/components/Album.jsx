@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import HTMLFlipBook from 'react-pageflip';
 import { useAlbum } from '../hooks/useAlbum';
 import { useAmbientSound } from '../hooks/useAmbientSound';
+import { useMediaQuery } from '../lib/useMediaQuery';
 import CoverPage from './CoverPage';
 import AlbumPage from './AlbumPage';
 import SoundToggle from './SoundToggle';
@@ -16,6 +17,10 @@ export default function Album() {
   const [currentPage, setCurrentPage] = useState(0);
   const [ready, setReady] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  // Below this width the book shows one page at a time (react-pageflip's
+  // portrait mode) instead of a two-page spread -- a spread squeezed into a
+  // phone screen makes every page far too narrow to use.
+  const isMobile = useMediaQuery('(max-width: 640px)');
 
   useEffect(() => {
     let cancelled = false;
@@ -77,16 +82,16 @@ export default function Album() {
   }
 
   return (
-    <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-cream px-4 py-10">
+    <div className="flex min-h-svh flex-col items-center justify-center gap-4 bg-cream px-3 py-6 sm:gap-6 sm:px-4 sm:py-10">
       <header className="text-center">
-        <h1 className="font-title text-6xl text-ink">Memoryscape</h1>
-        <p className="font-mono text-xs uppercase tracking-[0.25em] text-ink-soft/70">
+        <h1 className="font-title text-4xl text-ink sm:text-6xl">Memoryscape</h1>
+        <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-soft/70 sm:text-xs sm:tracking-[0.25em]">
           your digital photo album
         </p>
       </header>
 
       {album.saveError && (
-        <p className="font-mono max-w-md text-center text-xs uppercase tracking-[0.1em] text-terracotta-dark">
+        <p className="font-mono max-w-md px-4 text-center text-xs uppercase tracking-[0.1em] text-terracotta-dark">
           couldn&apos;t save your last change — your device storage may be full
         </p>
       )}
@@ -94,9 +99,9 @@ export default function Album() {
       <div
         className="group relative mx-auto w-full transition-transform duration-500 ease-in-out"
         style={{
-          maxWidth: 1200,
-          aspectRatio: '3 / 1',
-          transform: currentPage === 0 ? 'translateX(-25%)' : 'translateX(0)',
+          maxWidth: isMobile ? 420 : 1200,
+          aspectRatio: isMobile ? '3 / 2' : '3 / 1',
+          transform: !isMobile && currentPage === 0 ? 'translateX(-25%)' : 'translateX(0)',
         }}
         onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
@@ -125,13 +130,13 @@ export default function Album() {
               width={540}
               height={360}
               size="stretch"
-              minWidth={270}
+              minWidth={240}
               maxWidth={810}
-              minHeight={180}
+              minHeight={160}
               maxHeight={540}
               disableFlipByClick
               showCover
-              usePortrait={false}
+              usePortrait={isMobile}
               maxShadowOpacity={0.4}
               flippingTime={700}
               className="mx-auto"
@@ -156,7 +161,7 @@ export default function Album() {
                 type="button"
                 onClick={flipNext}
                 aria-label="Flip to next page"
-                className="absolute bottom-0 right-0 z-10 h-14 w-14 origin-bottom-right cursor-pointer transition-transform duration-300 ease-out group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 group-hover:scale-105"
+                className="absolute bottom-0 right-0 z-10 h-10 w-10 origin-bottom-right cursor-pointer transition-transform duration-300 ease-out group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 group-hover:scale-105 sm:h-14 sm:w-14"
                 style={{
                   background:
                     'linear-gradient(135deg, transparent 50%, rgba(74,56,38,0.28) 50.5%, rgba(74,56,38,0.12) 100%)',
@@ -168,7 +173,7 @@ export default function Album() {
         )}
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center justify-center gap-3 px-2 sm:gap-4">
         {currentPage > 0 && (
           <span className="font-mono text-xs uppercase tracking-[0.15em] text-ink-soft">
             page {currentPage} of {totalPages - 1}
